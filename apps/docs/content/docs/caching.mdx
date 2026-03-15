@@ -1,0 +1,117 @@
+---
+title: Caching
+description: Avoid redundant OpenAI API calls by caching translation results.
+icon: Database
+---
+
+## Overview
+
+Every `translate` call makes a request to OpenAI. For high-volume use cases, or for emails with static content, you can provide a `cache` adapter to store results and skip the API call on subsequent runs.
+
+The cache key is a **SHA-256 hash** of the HTML, subject, and locale combined. If any of these change, a new translation is fetched automatically.
+
+## Cache interface
+
+```ts
+interface CacheProvider {
+  prefix?: string;
+  get: (key: string) => Promise<string | null>;
+  set: (key: string, value: string) => Promise<void>;
+}
+```
+
+Any async key-value store works — Redis, Upstash, DynamoDB, Cloudflare KV, or even a simple in-memory `Map`.
+
+## Key prefix
+
+Set `prefix` to namespace your cache keys. This is useful when sharing a Redis instance across multiple services.
+
+```ts
+cache: {
+  prefix: "i18n-email:",
+  get: ...,
+  set: ...,
+}
+```
+
+## Examples
+
+### Upstash Redis
+
+```ts
+import { createI18nEmail } from "i18n-email";
+import { Redis } from "@upstash/redis";
+
+const redis = Redis.fromEnv();
+
+const i18nEmail = createI18nEmail({
+  openaiApiKey: process.env.OPENAI_API_KEY!,
+  cache: {
+    prefix: "i18n-email:",
+    get: async (key) => {
+      const value = await redis.get(key);
+      if (value === null) return null;
+      // Upstash auto-deserializes JSON, so re-stringify if needed
+      return typeof value === "string" ? value : JSON.stringify(value);
+    },
+    set: async (key, value) => {
+      await redis.set(key, value);
+    },
+  },
+});
+```
+
+<Callout>
+  Upstash Redis automatically deserializes stored JSON on `get`. The wrapper
+  above re-stringifies the value so the cache layer always receives a plain
+  string.
+</Callout>
+
+### In-memory (development / testing)
+
+```ts
+const store = new Map<string, string>();
+
+const i18nEmail = createI18nEmail({
+  openaiApiKey: process.env.OPENAI_API_KEY!,
+  cache: {
+    get: async (key) => store.get(key) ?? null,
+    set: async (key, value) => {
+      store.set(key, value);
+    },
+  },
+});
+```
+
+### Node.js `node:crypto` + filesystem
+
+```ts
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
+const cacheDir = ".cache/i18n-email";
+
+const i18nEmail = createI18nEmail({
+  openaiApiKey: process.env.OPENAI_API_KEY!,
+  cache: {
+    get: async (key) => {
+      try {
+        return await readFile(join(cacheDir, key), "utf-8");
+      } catch {
+        return null;
+      }
+    },
+    set: async (key, value) => {
+      await writeFile(join(cacheDir, key), value, "utf-8");
+    },
+  },
+});
+```
+
+## Cache invalidation
+
+Because the key is derived from content, cache invalidation is automatic:
+
+- **Same email, same locale** → cache hit, OpenAI is not called
+- **Email content changes** → new hash, new translation fetched
+- **Different locale** → different hash, translated independently

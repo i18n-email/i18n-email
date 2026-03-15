@@ -1,0 +1,119 @@
+---
+title: API Reference
+description: Full reference for createI18nEmail and all types.
+icon: Code
+---
+
+## `createI18nEmail(config)`
+
+Creates and returns an i18n-email client.
+
+```ts
+import { createI18nEmail } from "i18n-email";
+
+const i18nEmail = createI18nEmail(config);
+```
+
+### `I18nEmailConfig`
+
+| Option         | Type            | Required | Default    | Description                                |
+| -------------- | --------------- | -------- | ---------- | ------------------------------------------ |
+| `openaiApiKey` | `string`        | Yes      | —          | OpenAI API key                             |
+| `model`        | `string`        | No       | `"gpt-4o"` | OpenAI model to use for translation        |
+| `cache`        | `CacheProvider` | No       | —          | Cache adapter to avoid redundant API calls |
+
+### Returns
+
+```ts
+{
+  translate: (options: TranslateOptions) => Promise<TranslateResult>;
+}
+```
+
+---
+
+## `translate(options)`
+
+Translates an email's subject and body to the target locale.
+
+```ts
+const result = await i18nEmail.translate(options);
+```
+
+### `TranslateOptions`
+
+Exactly one of `react` or `html` must be provided.
+
+| Option    | Type           | Required | Description                                                                |
+| --------- | -------------- | -------- | -------------------------------------------------------------------------- |
+| `locale`  | `string`       | Yes      | BCP 47 locale code of the target language (e.g. `"fr"`, `"ar"`, `"zh-TW"`) |
+| `subject` | `string`       | Yes      | Email subject line to translate                                            |
+| `react`   | `ReactElement` | One of   | React Email component — rendered to HTML before translation                |
+| `html`    | `string`       | One of   | Raw HTML string to translate directly                                      |
+
+### `TranslateResult`
+
+```ts
+interface TranslateResult {
+  subject: string;
+  html: string;
+}
+```
+
+| Field     | Description             |
+| --------- | ----------------------- |
+| `subject` | Translated subject line |
+| `html`    | Translated HTML body    |
+
+If the source email is already in the target locale, the original `subject` and `html` are returned unchanged.
+
+---
+
+## `CacheProvider`
+
+```ts
+interface CacheProvider {
+  prefix?: string;
+  get: (key: string) => Promise<string | null>;
+  set: (key: string, value: string) => Promise<void>;
+}
+```
+
+| Member   | Type                                            | Description                                   |
+| -------- | ----------------------------------------------- | --------------------------------------------- |
+| `prefix` | `string`                                        | Optional string prepended to every cache key  |
+| `get`    | `(key: string) => Promise<string \| null>`      | Returns the cached value, or `null` on a miss |
+| `set`    | `(key: string, value: string) => Promise<void>` | Stores a value under the given key            |
+
+Cache keys are SHA-256 hashes of the concatenated HTML, subject, and locale. See [Caching](/docs/caching) for adapter examples.
+
+---
+
+## Exported types
+
+All types are available as named exports from `i18n-email`:
+
+```ts
+import type {
+  I18nEmailConfig,
+  CacheProvider,
+  TranslateOptions,
+  TranslateOptionsReact,
+  TranslateOptionsHtml,
+  TranslateResult,
+} from "i18n-email";
+```
+
+---
+
+## Errors
+
+The library throws a plain `Error` with a descriptive message in these cases:
+
+| Situation                             | Message prefix                                       |
+| ------------------------------------- | ---------------------------------------------------- |
+| React component fails to render       | `i18n-email: Failed to render React component:`      |
+| OpenAI returns an empty response      | `i18n-email: OpenAI returned an empty response`      |
+| OpenAI returns malformed JSON         | `i18n-email: OpenAI returned malformed JSON:`        |
+| Response shape is unexpected          | `i18n-email: Unexpected response shape from OpenAI:` |
+| Translation count doesn't match input | `i18n-email: Translation count mismatch.`            |

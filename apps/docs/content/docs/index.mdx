@@ -1,0 +1,48 @@
+---
+title: Introduction
+description: Translate transactional emails into any language using OpenAI.
+icon: Globe
+---
+
+**i18n-email** translates transactional emails into any language using OpenAI. Pass a React Email component or a raw HTML string, specify a target locale, and get back a translated `subject` and `html` — ready to send.
+
+## Features
+
+- Works with **React Email components** or **raw HTML strings**
+- Translates the **subject line and full body** in a single OpenAI API call
+- **Detects the source language** automatically — skips translation when already in the target locale
+- Skips `<style>`, `<script>`, and `<head>` — only visible text is extracted and sent
+- **RTL support** — injects `dir="rtl"` automatically for Arabic, Hebrew, Persian, and Urdu
+- Optional **cache layer** with key prefix to avoid redundant API calls
+
+## How it works
+
+1. **Render** — if a React component is passed, it is rendered to HTML via `@react-email/render`
+2. **Extract** — the HTML is parsed and walked; visible text nodes and translatable attributes (`alt`, `title`) are collected, adjacent sibling text nodes are merged to preserve sentence context, and strings are deduplicated
+3. **Translate** — the subject and all unique strings are sent to OpenAI in a single request as a JSON array; OpenAI returns the translated strings and the detected source locale
+4. **Skip if same locale** — if the detected source language matches the target, the original content is returned unchanged
+5. **Inject** — translated strings are mapped back into their original positions in the HTML tree
+6. **RTL** — if the target locale is right-to-left, `dir="rtl"` is injected on the root `<html>` element
+
+<Cards>
+  <Card
+    title="Installation"
+    href="/docs/installation"
+    description="Add i18n-email to your project"
+  />
+  <Card
+    title="Usage"
+    href="/docs/usage"
+    description="Translate your first email"
+  />
+  <Card
+    title="Caching"
+    href="/docs/caching"
+    description="Avoid redundant API calls"
+  />
+  <Card
+    title="API Reference"
+    href="/docs/api-reference"
+    description="Full config and type reference"
+  />
+</Cards>

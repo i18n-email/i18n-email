@@ -1,0 +1,41 @@
+---
+title: Installation
+description: Add i18n-email to your project.
+icon: Package
+---
+
+## Install the package
+
+```package-install
+i18n-email
+```
+
+`react >= 18` is required as a peer dependency. If it is not already in your project:
+
+```package-install
+react
+```
+
+## Set up your OpenAI API key
+
+`i18n-email` uses the OpenAI API for translation. You need an API key from [platform.openai.com](https://platform.openai.com/api-keys).
+
+Add it to your environment:
+
+```bash
+OPENAI_API_KEY=sk-...
+```
+
+## TypeScript
+
+The package ships with full TypeScript types. No additional `@types/*` packages are needed.
+
+If you are using JSX (React Email components), make sure `@types/react` is installed and your `tsconfig.json` has:
+
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  }
+}
+```

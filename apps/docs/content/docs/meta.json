@@ -1,0 +1,10 @@
+{
+  "title": "i18n-email",
+  "pages": [
+    "index",
+    "installation",
+    "usage",
+    "caching",
+    "api-reference"
+  ]
+}
