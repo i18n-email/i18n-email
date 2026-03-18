@@ -6,9 +6,12 @@ Translate transactional emails into any language using OpenAI. Works with [React
 
 - Accepts a **React Email component** or a **raw HTML string**
 - Translates the **subject line and body** in a single OpenAI call
+- **Batches large emails** — splits strings into chunks to stay within model limits
 - Skips `<style>`, `<script>`, and `<head>` — only visible text is sent
-- Injects `dir="rtl"` automatically for Arabic, Hebrew, Persian, and Urdu
+- Injects `dir="rtl"` automatically for Arabic, Hebrew, Persian, Urdu, and more
 - Optional **cache layer** with a key prefix to avoid redundant API calls
+- **`onTranslate` hook** for logging and analytics
+- Supports **any OpenAI-compatible API** via `baseURL`
 
 ## Install
 
@@ -50,11 +53,15 @@ await resend.emails.send({
 
 ### `createI18nEmail(config)`
 
-| Option         | Type            | Required | Description                      |
-| -------------- | --------------- | -------- | -------------------------------- |
-| `openaiApiKey` | `string`        | Yes      | OpenAI API key                   |
-| `model`        | `string`        | No       | Model to use (default: `gpt-4o`) |
-| `cache`        | `CacheProvider` | No       | Cache adapter (see below)        |
+| Option         | Type                                    | Default    | Description                                          |
+| -------------- | --------------------------------------- | ---------- | ---------------------------------------------------- |
+| `openaiApiKey` | `string`                                | —          | OpenAI API key                                       |
+| `model`        | `string`                                | `"gpt-4o"` | Any OpenAI chat model                                |
+| `baseURL`      | `string`                                | —          | Override the OpenAI API base URL (Azure, Groq, etc.) |
+| `maxRetries`   | `number`                                | `2`        | Retries on transient OpenAI errors                   |
+| `batchSize`    | `number`                                | `50`       | Max strings per OpenAI request                       |
+| `cache`        | [`CacheProvider`](#cacheprovider)       | —          | Cache adapter to avoid redundant API calls           |
+| `onTranslate`  | `(info: TranslateCallbackInfo) => void` | —          | Hook called after every translate call               |
 
 Returns `{ translate }`.
 
@@ -83,14 +90,26 @@ interface CacheProvider {
 
 The cache key is a SHA-256 hash of the HTML, subject, and locale. `prefix` is prepended to every key when provided.
 
+### `TranslateCallbackInfo`
+
+```ts
+interface TranslateCallbackInfo {
+  locale: string; // requested target locale
+  detectedLocale: string; // source locale detected by OpenAI
+  strings: string[]; // all strings sent for translation (empty on cache hit)
+  cacheHit: boolean; // true when the result was served from cache
+}
+```
+
 ## How it works
 
 1. **Render** — if a React component is passed, render it to HTML
-2. **Extract** — parse HTML with `node-html-parser`, walk the tree, collect visible text nodes and translatable attributes (`alt`, `title`), merge adjacent sibling text nodes to preserve sentence context, deduplicate
-3. **Translate** — send the subject + all unique strings to OpenAI (`gpt-4o`) as a JSON array in a single request; OpenAI returns translated strings and the detected source locale
-4. **Skip if same locale** — if the detected source language matches the target locale, return the original content as-is
-5. **Inject** — map translated strings back into their original positions in the HTML
-6. **RTL** — if the target locale is RTL (`ar`, `he`, `fa`, `ur`), inject `dir="rtl"` on the root `<html>` element
+2. **Cache check** — if a cache is configured, look up by SHA-256(html + subject + locale); return immediately on hit
+3. **Extract** — parse HTML with `node-html-parser`, walk the tree, collect visible text nodes and `alt`/`title` attributes, merge adjacent sibling nodes to preserve sentence context, deduplicate
+4. **Translate** — send `[subject, ...uniqueStrings]` to OpenAI in batches of `batchSize`; the first batch also returns the detected source locale
+5. **Skip if same locale** — if the detected source language matches the target locale (compared by base tag, e.g. `"en-US"` matches `"en"`), return the original content as-is
+6. **Inject** — map translated strings back into their original positions in the HTML
+7. **RTL** — if the target locale is RTL, inject `dir="rtl"` on the root `<html>` element
 
 ## Caching
 
@@ -119,9 +138,27 @@ const i18n = createI18nEmail({
 
 > **Note:** Upstash Redis auto-deserializes JSON on `get`, so the wrapper above re-stringifies the value before returning it.
 
+## `onTranslate` hook
+
+Use the `onTranslate` callback for logging, metrics, or debugging:
+
+```ts
+const i18n = createI18nEmail({
+  openaiApiKey: "sk-...",
+  onTranslate: ({ locale, detectedLocale, strings, cacheHit }) => {
+    console.log(
+      `Translated ${strings.length} strings to ${locale}` +
+        ` (detected: ${detectedLocale}, cache: ${cacheHit})`,
+    );
+  },
+});
+```
+
 ## RTL support
 
-When the target locale is `ar`, `he`, `fa`, or `ur`, the library automatically injects `dir="rtl"` on the root HTML element after translation.
+When the target locale is one of the following, `dir="rtl"` is automatically injected on the root HTML element after translation:
+
+`ar` (Arabic), `he` (Hebrew), `fa` (Persian), `ur` (Urdu), `ps` (Pashto), `sd` (Sindhi), `ug` (Uyghur), `yi` (Yiddish), `dv` (Divehi)
 
 ## Error handling
 

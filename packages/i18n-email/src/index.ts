@@ -6,4 +6,6 @@ export type {
   TranslateOptionsReact,
   TranslateOptionsHtml,
   TranslateResult,
+  TranslationResponse,
+  TranslateCallbackInfo,
 } from "./types";

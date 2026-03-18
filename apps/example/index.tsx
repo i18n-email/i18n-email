@@ -8,6 +8,10 @@ const redis = Redis.fromEnv();
 
 const i18nEmail = createI18nEmail({
   openaiApiKey: process.env.OPENAI_API_KEY!,
+  maxRetries: 3,
+  onTranslate: (info) => {
+    console.log(info);
+  },
   cache: {
     prefix: "i18n-email:",
     get: async (key) => {

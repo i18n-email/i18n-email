@@ -9,7 +9,18 @@ export interface CacheProvider {
 export interface I18nEmailConfig {
   openaiApiKey: string;
   model?: string;
+  baseURL?: string;
+  maxRetries?: number;
+  batchSize?: number;
   cache?: CacheProvider;
+  onTranslate?: (info: TranslateCallbackInfo) => void;
+}
+
+export interface TranslateCallbackInfo {
+  locale: string;
+  detectedLocale: string;
+  strings: string[];
+  cacheHit: boolean;
 }
 
 export interface TranslateOptionsReact {

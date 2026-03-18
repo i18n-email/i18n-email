@@ -6,9 +6,12 @@ Translate transactional emails into any language using AI models. Works with Rea
 
 - Accepts a **React Email component** or a **raw HTML string**
 - Translates the **subject line and body** in a single OpenAI call
+- **Batches large emails** — splits strings into chunks to stay within model limits
 - Skips `<style>`, `<script>`, and `<head>` — only visible text is sent
-- Injects `dir="rtl"` automatically for Arabic, Hebrew, Persian, and Urdu
+- Injects `dir="rtl"` automatically for Arabic, Hebrew, Persian, Urdu, and more
 - Optional **cache layer** with a key prefix to avoid redundant API calls
+- **`onTranslate` hook** for logging and analytics
+- Supports **any OpenAI-compatible API** via `baseURL`
 
 ## Install
 
@@ -71,15 +74,33 @@ const i18nEmail = createI18nEmail({
 });
 ```
 
+### With logging
+
+```ts
+const i18nEmail = createI18nEmail({
+  openaiApiKey: process.env.OPENAI_API_KEY!,
+  onTranslate: ({ locale, detectedLocale, strings, cacheHit }) => {
+    console.log(
+      `Translated ${strings.length} strings to ${locale}` +
+        ` (detected: ${detectedLocale}, cache: ${cacheHit})`,
+    );
+  },
+});
+```
+
 ## API
 
 ### `createI18nEmail(config)`
 
-| Option         | Type            | Required | Description                      |
-| -------------- | --------------- | -------- | -------------------------------- |
-| `openaiApiKey` | `string`        | Yes      | OpenAI API key                   |
-| `model`        | `string`        | No       | Model to use (default: `gpt-4o`) |
-| `cache`        | `CacheProvider` | No       | Cache adapter (see below)        |
+| Option         | Type                                    | Default    | Description                                   |
+| -------------- | --------------------------------------- | ---------- | --------------------------------------------- |
+| `openaiApiKey` | `string`                                | —          | OpenAI API key                                |
+| `model`        | `string`                                | `"gpt-4o"` | Any OpenAI chat model                         |
+| `baseURL`      | `string`                                | —          | Override the API base URL (Azure, Groq, etc.) |
+| `maxRetries`   | `number`                                | `2`        | Retries on transient OpenAI errors            |
+| `batchSize`    | `number`                                | `50`       | Max strings per OpenAI request                |
+| `cache`        | `CacheProvider`                         | —          | Cache adapter to avoid redundant API calls    |
+| `onTranslate`  | `(info: TranslateCallbackInfo) => void` | —          | Hook called after every translate call        |
 
 Returns `{ translate }`.
 
@@ -94,7 +115,7 @@ Returns `{ translate }`.
 
 Returns `Promise<{ subject: string; html: string }>`.
 
-If the email is already in the target locale, the original `subject` and `html` are returned unchanged.
+If the email is already in the target locale, the original `subject` and `html` are returned unchanged. Locale matching normalizes base tags, so `"en-US"` and `"en"` are treated as the same language.
 
 ### `CacheProvider`
 
@@ -107,3 +128,14 @@ interface CacheProvider {
 ```
 
 The cache key is a SHA-256 hash of the HTML, subject, and locale. `prefix` is prepended to every key when provided.
+
+### `TranslateCallbackInfo`
+
+```ts
+interface TranslateCallbackInfo {
+  locale: string; // requested target locale
+  detectedLocale: string; // source locale detected by OpenAI
+  strings: string[]; // all strings sent for translation (empty on cache hit)
+  cacheHit: boolean; // true when the result was served from cache
+}
+```

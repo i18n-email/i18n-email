@@ -1,6 +1,6 @@
 {
   "name": "i18n-email",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Translate transactional emails into any language using AI models.",
   "author": "Dan Zabrotski",
@@ -41,7 +41,8 @@
   ],
   "scripts": {
     "build": "tsup",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "@react-email/render": "^1",

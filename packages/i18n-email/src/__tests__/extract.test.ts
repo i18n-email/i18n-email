@@ -93,6 +93,15 @@ describe("extractStrings", () => {
     expect(uniqueStrings).toEqual([]);
   });
 
+  test("ignores DOCTYPE declarations", () => {
+    const html =
+      '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" ' +
+      '"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">' +
+      "<html><body><p>Hello</p></body></html>";
+    const { uniqueStrings } = extractStrings(html);
+    expect(uniqueStrings).toEqual(["Hello"]);
+  });
+
   test("extracts from a realistic email structure", () => {
     const html = `
       <html>

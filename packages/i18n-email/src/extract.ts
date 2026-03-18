@@ -49,11 +49,7 @@ export function extractStrings(html: string): ExtractionResult {
     let i = 0;
 
     while (i < children.length) {
-      const child = children[i];
-      if (!child) {
-        i++;
-        continue;
-      }
+      const child = children[i]!;
 
       if (child.nodeType === NodeType.TEXT_NODE) {
         const textNodes: Node[] = [];
@@ -65,7 +61,8 @@ export function extractStrings(html: string): ExtractionResult {
           i++;
         }
         const merged = textNodes.map((n) => n.rawText).join("");
-        if (merged.trim()) {
+        const trimmed = merged.trim();
+        if (trimmed && !trimmed.startsWith("<!DOCTYPE")) {
           entries.push({
             type: "text",
             nodes: textNodes,

@@ -6,6 +6,6 @@ export function createCacheKey(
   locale: string,
 ): string {
   return createHash("sha256")
-    .update(`${html}${subject}${locale}`)
+    .update([html, subject, locale].join("\0"))
     .digest("hex");
 }
