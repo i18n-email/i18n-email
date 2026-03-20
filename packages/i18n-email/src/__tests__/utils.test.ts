@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { baseLocale, chunk } from "../utils";
+import { baseLocale, chunk, isAiLanguageModel, isAiSdkConfig } from "../utils";
+import type { I18nEmailConfig } from "../types";
 
 describe("baseLocale", () => {
   test("returns the tag unchanged when there is no region subtag", () => {
@@ -46,5 +47,63 @@ describe("chunk", () => {
 
   test("returns one chunk per element when size is 1", () => {
     expect(chunk([1, 2, 3], 1)).toEqual([[1], [2], [3]]);
+  });
+});
+
+describe("isAiLanguageModel", () => {
+  test("returns true for a valid AI SDK model object", () => {
+    expect(
+      isAiLanguageModel({
+        specificationVersion: "v1",
+        modelId: "gpt-4o",
+        provider: "openai",
+      }),
+    ).toBe(true);
+  });
+
+  test("returns false for null", () => {
+    expect(isAiLanguageModel(null)).toBe(false);
+  });
+
+  test("returns false for a plain string", () => {
+    expect(isAiLanguageModel("gpt-4o")).toBe(false);
+  });
+
+  test("returns false when modelId is missing", () => {
+    expect(isAiLanguageModel({ provider: "openai" })).toBe(false);
+  });
+
+  test("returns false when provider is missing", () => {
+    expect(isAiLanguageModel({ modelId: "gpt-4o" })).toBe(false);
+  });
+
+  test("returns false for a number", () => {
+    expect(isAiLanguageModel(42)).toBe(false);
+  });
+});
+
+describe("isAiSdkConfig", () => {
+  test("returns true when model is an AI SDK model object", () => {
+    const config: I18nEmailConfig = {
+      model: {
+        specificationVersion: "v1",
+        modelId: "gpt-4o",
+        provider: "openai",
+      },
+    };
+    expect(isAiSdkConfig(config)).toBe(true);
+  });
+
+  test("returns false for an OpenAI key config", () => {
+    const config: I18nEmailConfig = { openaiApiKey: "sk-test" };
+    expect(isAiSdkConfig(config)).toBe(false);
+  });
+
+  test("returns false when model is a string", () => {
+    const config: I18nEmailConfig = {
+      openaiApiKey: "sk-test",
+      model: "gpt-4o-mini",
+    };
+    expect(isAiSdkConfig(config)).toBe(false);
   });
 });

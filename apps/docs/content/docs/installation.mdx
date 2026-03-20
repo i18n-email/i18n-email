@@ -16,15 +16,27 @@ i18n-email
 react
 ```
 
-## Set up your OpenAI API key
+## Choose a translation backend
 
-`i18n-email` uses the OpenAI API for translation. You need an API key from [platform.openai.com](https://platform.openai.com/api-keys).
+### Option A: OpenAI directly (default)
+
+`i18n-email` uses the OpenAI API for translation by default. You need an API key from [platform.openai.com](https://platform.openai.com/api-keys).
 
 Add it to your environment:
 
 ```bash
 OPENAI_API_KEY=sk-...
 ```
+
+### Option B: Vercel AI SDK
+
+You can use any AI SDK provider instead — OpenAI, Anthropic, Google, Mistral, and more. Install the `ai` package and your preferred provider:
+
+```package-install
+ai @ai-sdk/openai
+```
+
+No API key is needed in `createI18nEmail` when using an AI SDK model — the provider handles authentication via its own environment variables.
 
 ## TypeScript
 

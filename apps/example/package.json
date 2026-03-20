@@ -11,9 +11,12 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@upstash/redis": "^1.37.0",
-    "i18n-email": "workspace:*",
+    "@ai-sdk/google": "^3.0.43",
+    "@ai-sdk/openai": "^3.0.41",
     "@i18n-email/resend": "workspace:*",
+    "@upstash/redis": "^1.37.0",
+    "ai": "^6.0.116",
+    "i18n-email": "workspace:*",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "resend": "^6.9.4"

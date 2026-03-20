@@ -16,11 +16,17 @@ const i18nEmail = createI18nEmail(config);
 
 ### `I18nEmailConfig`
 
-| Option         | Type            | Required | Default    | Description                                |
-| -------------- | --------------- | -------- | ---------- | ------------------------------------------ |
-| `openaiApiKey` | `string`        | Yes      | —          | OpenAI API key                             |
-| `model`        | `string`        | No       | `"gpt-4o"` | OpenAI model to use for translation        |
-| `cache`        | `CacheProvider` | No       | —          | Cache adapter to avoid redundant API calls |
+| Option         | Type                        | Required                 | Default    | Description                                                      |
+| -------------- | --------------------------- | ------------------------ | ---------- | ---------------------------------------------------------------- |
+| `openaiApiKey` | `string`                    | When `model` is a string | —          | OpenAI API key                                                   |
+| `model`        | `string \| AiLanguageModel` | No                       | `"gpt-4o"` | OpenAI model name or an AI SDK model instance                    |
+| `baseURL`      | `string`                    | No                       | —          | Override the API base URL (Azure, Groq, etc.) — OpenAI path only |
+| `maxRetries`   | `number`                    | No                       | `2`        | Retries on transient OpenAI errors — OpenAI path only            |
+| `batchSize`    | `number`                    | No                       | `50`       | Max strings per API request                                      |
+| `cache`        | `CacheProvider`             | No                       | —          | Cache adapter to avoid redundant API calls                       |
+| `onTranslate`  | `(info) => void`            | No                       | —          | Hook called after every translate call                           |
+
+When `model` is an AI SDK model object (e.g. `openai("gpt-4o")`), `openaiApiKey`, `baseURL`, and `maxRetries` are ignored — the provider handles these.
 
 ### Returns
 
@@ -95,12 +101,15 @@ All types are available as named exports from `i18n-email`:
 
 ```ts
 import type {
+  AiLanguageModel,
   I18nEmailConfig,
   CacheProvider,
   TranslateOptions,
   TranslateOptionsReact,
   TranslateOptionsHtml,
   TranslateResult,
+  TranslationResponse,
+  TranslateCallbackInfo,
 } from "i18n-email";
 ```
 
@@ -110,10 +119,12 @@ import type {
 
 The library throws a plain `Error` with a descriptive message in these cases:
 
-| Situation                             | Message prefix                                       |
-| ------------------------------------- | ---------------------------------------------------- |
-| React component fails to render       | `i18n-email: Failed to render React component:`      |
-| OpenAI returns an empty response      | `i18n-email: OpenAI returned an empty response`      |
-| OpenAI returns malformed JSON         | `i18n-email: OpenAI returned malformed JSON:`        |
-| Response shape is unexpected          | `i18n-email: Unexpected response shape from OpenAI:` |
-| Translation count doesn't match input | `i18n-email: Translation count mismatch.`            |
+| Situation                                   | Message prefix                                       |
+| ------------------------------------------- | ---------------------------------------------------- |
+| No `openaiApiKey` when using string model   | `i18n-email: openaiApiKey is required when...`       |
+| `ai` package not installed for AI SDK model | `i18n-email: The "ai" package is required...`        |
+| React component fails to render             | `i18n-email: Failed to render React component:`      |
+| OpenAI returns an empty response            | `i18n-email: OpenAI returned an empty response`      |
+| OpenAI returns malformed JSON               | `i18n-email: OpenAI returned malformed JSON:`        |
+| Response shape is unexpected                | `i18n-email: Unexpected response shape from OpenAI:` |
+| Translation count doesn't match input       | `i18n-email: Translation count mismatch.`            |

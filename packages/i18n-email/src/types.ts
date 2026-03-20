@@ -6,15 +6,37 @@ export interface CacheProvider {
   set: (key: string, value: string) => Promise<void>;
 }
 
-export interface I18nEmailConfig {
-  openaiApiKey: string;
-  model?: string;
-  baseURL?: string;
-  maxRetries?: number;
+/**
+ * Minimal duck type for an AI SDK language model.
+ * Compatible with any provider: `openai("gpt-4o")`, `anthropic("claude-4-sonnet")`, etc.
+ */
+export interface AiLanguageModel {
+  readonly specificationVersion: string;
+  readonly modelId: string;
+  readonly provider: string;
+}
+
+interface SharedConfig {
   batchSize?: number;
   cache?: CacheProvider;
   onTranslate?: (info: TranslateCallbackInfo) => void;
 }
+
+export interface OpenAIConfig extends SharedConfig {
+  openaiApiKey: string;
+  model?: string;
+  baseURL?: string;
+  maxRetries?: number;
+}
+
+export interface AiSdkConfig extends SharedConfig {
+  model: AiLanguageModel;
+  openaiApiKey?: never;
+  baseURL?: never;
+  maxRetries?: never;
+}
+
+export type I18nEmailConfig = OpenAIConfig | AiSdkConfig;
 
 export interface TranslateCallbackInfo {
   locale: string;

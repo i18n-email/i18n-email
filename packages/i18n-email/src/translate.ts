@@ -1,5 +1,6 @@
 import type OpenAI from "openai";
 import type { TranslationResponse } from "./types";
+import { buildSystemPrompt, buildUserPrompt } from "./prompt";
 
 export async function translateStrings(
   client: OpenAI,
@@ -14,20 +15,16 @@ export async function translateStrings(
       {
         role: "system",
         content: [
-          `You are translating email content to ${locale}.`,
-          "Rules:",
+          buildSystemPrompt(locale),
           "- Return a JSON object with two fields:",
           '  1. "detectedLocale": the ISO locale code of the source language',
           '  2. "translations": a JSON array of translated strings in the exact same order as the input',
-          "- Preserve dynamic values like names, URLs, amounts, dates, and codes exactly as they appear",
-          "- Do not translate brand names or product names",
-          "- Preserve tone: professional but friendly",
           "- Return only the JSON object, no explanation",
         ].join("\n"),
       },
       {
         role: "user",
-        content: JSON.stringify(strings),
+        content: buildUserPrompt(strings),
       },
     ],
   });

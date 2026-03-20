@@ -1,5 +1,8 @@
 export { createI18nEmail } from "./client";
 export type {
+  AiLanguageModel,
+  AiSdkConfig,
+  OpenAIConfig,
   I18nEmailConfig,
   CacheProvider,
   TranslateOptions,

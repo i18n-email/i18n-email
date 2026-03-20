@@ -84,11 +84,42 @@ For right-to-left languages, `dir="rtl"` is injected on the root `<html>` elemen
 
 ## Choosing a model
 
-By default, `gpt-4o` is used. You can override this with the `model` option on `createI18nEmail`:
+By default, `gpt-4o` is used with the OpenAI client. You can override this with the `model` option:
 
 ```ts
 const i18nEmail = createI18nEmail({
   openaiApiKey: process.env.OPENAI_API_KEY!,
   model: "gpt-4o-mini",
+});
+```
+
+### With AI SDK
+
+Pass any Vercel AI SDK model instance instead of a string. When you do, `openaiApiKey` is not required — the provider handles authentication.
+
+```ts
+import { createI18nEmail } from "i18n-email";
+import { openai } from "@ai-sdk/openai";
+
+const i18nEmail = createI18nEmail({
+  model: openai("gpt-4o"),
+});
+```
+
+Works with any provider:
+
+```ts
+import { anthropic } from "@ai-sdk/anthropic";
+
+const i18nEmail = createI18nEmail({
+  model: anthropic("claude-4-sonnet"),
+});
+```
+
+```ts
+import { google } from "@ai-sdk/google";
+
+const i18nEmail = createI18nEmail({
+  model: google("gemini-2.5-pro"),
 });
 ```

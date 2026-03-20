@@ -1,19 +1,20 @@
 ---
 title: Introduction
-description: Translate transactional emails into any language using OpenAI.
+description: Translate transactional emails into any language using AI.
 icon: Globe
 ---
 
-**i18n-email** translates transactional emails into any language using OpenAI. Pass a React Email component or a raw HTML string, specify a target locale, and get back a translated `subject` and `html` — ready to send.
+**i18n-email** translates transactional emails into any language using AI. Pass a React Email component or a raw HTML string, specify a target locale, and get back a translated `subject` and `html` — ready to send.
 
 ## Features
 
 - Works with **React Email components** or **raw HTML strings**
-- Translates the **subject line and full body** in a single OpenAI API call
+- Translates the **subject line and full body** in a single API call
 - **Detects the source language** automatically — skips translation when already in the target locale
 - Skips `<style>`, `<script>`, and `<head>` — only visible text is extracted and sent
 - **RTL support** — injects `dir="rtl"` automatically for Arabic, Hebrew, Persian, and Urdu
 - Optional **cache layer** with key prefix to avoid redundant API calls
+- **AI SDK support** — use any Vercel AI SDK provider (OpenAI, Anthropic, Google, Mistral, etc.)
 
 ## How it works
 

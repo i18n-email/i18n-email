@@ -1,11 +1,16 @@
 import { Resend } from "resend";
 import { withResend } from "@i18n-email/resend";
 import { Redis } from "@upstash/redis";
+import { createOpenAI } from "@ai-sdk/openai";
 
 const redis = Redis.fromEnv();
 
-const resend = withResend(new Resend(process.env.RESEND_API_KEY!), {
-  openaiApiKey: process.env.OPENAI_API_KEY!,
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+const resend = withResend(new Resend(process.env.RESEND_API_KEY), {
+  model: openai("gpt-5.2"),
   onTranslate: (info) => {
     console.log(info);
   },

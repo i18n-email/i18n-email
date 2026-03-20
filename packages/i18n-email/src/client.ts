@@ -1,25 +1,44 @@
-import OpenAI from "openai";
 import type {
   I18nEmailConfig,
   TranslateOptions,
   TranslateResult,
+  TranslationResponse,
 } from "./types";
 import { renderReactEmail } from "./render";
 import { extractStrings } from "./extract";
 import { injectTranslations } from "./inject";
 import { translateStrings } from "./translate";
+import { translateStringsWithAi } from "./translate-ai";
 import { getCachedResult, setCachedResult } from "./cache";
 import { isRtlLocale, injectRtlDir } from "./rtl";
-import { baseLocale, chunk } from "./utils";
+import { baseLocale, chunk, createOpenAIClient, isAiSdkConfig } from "./utils";
 
 const DEFAULT_BATCH_SIZE = 50;
 
 export function createI18nEmail(config: I18nEmailConfig) {
-  const client = new OpenAI({
-    apiKey: config.openaiApiKey,
-    baseURL: config.baseURL,
-    maxRetries: config.maxRetries ?? 2,
-  });
+  const aiSdk = isAiSdkConfig(config);
+
+  let clientPromise: Promise<import("openai").default> | undefined;
+
+  function getClient(): Promise<import("openai").default> {
+    if (!clientPromise) {
+      clientPromise = createOpenAIClient(
+        config as import("./types").OpenAIConfig,
+      );
+    }
+    return clientPromise;
+  }
+
+  async function translateBatch(
+    strings: string[],
+    locale: string,
+  ): Promise<TranslationResponse> {
+    if (aiSdk) {
+      return translateStringsWithAi(config.model, strings, locale);
+    }
+    const client = await getClient();
+    return translateStrings(client, strings, locale, config.model ?? "gpt-4o");
+  }
 
   async function translate(
     options: TranslateOptions,
@@ -46,7 +65,6 @@ export function createI18nEmail(config: I18nEmailConfig) {
     const { root, entries, uniqueStrings } = extractStrings(html);
 
     const allStrings = [subject, ...uniqueStrings];
-    const model = config.model ?? "gpt-4o";
     const batchSize = config.batchSize ?? DEFAULT_BATCH_SIZE;
     const batches = chunk(allStrings, batchSize);
 
@@ -55,12 +73,7 @@ export function createI18nEmail(config: I18nEmailConfig) {
       return { subject, html };
     }
 
-    const firstResponse = await translateStrings(
-      client,
-      firstBatch,
-      locale,
-      model,
-    );
+    const firstResponse = await translateBatch(firstBatch, locale);
 
     if (baseLocale(firstResponse.detectedLocale) === baseLocale(locale)) {
       const result: TranslateResult = { subject, html };
@@ -80,7 +93,7 @@ export function createI18nEmail(config: I18nEmailConfig) {
 
     for (let i = 1; i < batches.length; i++) {
       const batch = batches[i]!;
-      const response = await translateStrings(client, batch, locale, model);
+      const response = await translateBatch(batch, locale);
       allTranslations.push(...response.translations);
     }
 
