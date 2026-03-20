@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.0 — 2026-03-20
+
+### New features
+
+- **Vercel AI SDK support** — pass any AI SDK model instance as `model` instead of a string; works with `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, and any other AI SDK provider
+- **`openai` is now an optional peer dependency** — if you use an AI SDK model, `openai` no longer needs to be installed; both `openai` and `ai` are optional peers, and the library throws a clear install hint if the required package is missing
+- **Discriminated config type** — `I18nEmailConfig` is now a union of `OpenAIConfig` (requires `openaiApiKey`) and `AiSdkConfig` (requires `model: AiLanguageModel`); TypeScript enforces the correct shape at the call site
+- **Shared prompt** — translation instructions live in a single `buildSystemPrompt` / `buildUserPrompt` source used by both the OpenAI and AI SDK paths
+
+### Breaking changes
+
+- `openaiApiKey` is no longer accepted when `model` is an AI SDK model object — TypeScript marks it as `never` on `AiSdkConfig`
+- `openai` is no longer a hard `dependency`; projects using the default OpenAI path must have `openai >= 4` installed (most already do)
+
+### Other
+
+- `AiLanguageModel`, `AiSdkConfig`, and `OpenAIConfig` are now exported from the public API
+- 100% function coverage across all source files
+
 ## 0.2.0 — 2026-03-18
 
 ### New features
