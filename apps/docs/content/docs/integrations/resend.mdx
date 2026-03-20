@@ -1,0 +1,154 @@
+---
+title: Resend
+description: Use @i18n-email/resend to add locale-aware sending directly on the Resend client.
+icon: Mail
+---
+
+## Overview
+
+`@i18n-email/resend` wraps a `Resend` instance so that `emails.send()` accepts an optional `locale` field. When `locale` is set, the email is translated before it is sent. When it is omitted, the call passes through to Resend unchanged.
+
+All other Resend methods — `emails.get`, `emails.cancel`, `contacts`, `domains`, etc. — are untouched.
+
+## Installation
+
+```sh
+bun add @i18n-email/resend
+# or
+npm install @i18n-email/resend
+```
+
+Peer dependencies: `i18n-email >= 0.2.0`, `resend >= 4`, `react >= 18`.
+
+## Setup
+
+Call `withResend` once, passing a `Resend` instance and the same config object that `createI18nEmail` accepts.
+
+```ts
+import { Resend } from "resend";
+import { withResend } from "@i18n-email/resend";
+
+const resend = withResend(new Resend(process.env.RESEND_API_KEY!), {
+  openaiApiKey: process.env.OPENAI_API_KEY!,
+});
+```
+
+The returned value is an `I18nResend` — a prototypal delegate of the original `Resend` instance with `emails.send` replaced.
+
+## Sending a translated email
+
+Add `locale` to any `emails.send` call to trigger translation.
+
+```tsx
+import { WelcomeEmail } from "./emails/welcome";
+
+await resend.emails.send({
+  from: "hello@acme.com",
+  to: "user@example.com",
+  locale: "fr",
+  subject: "Welcome!",
+  react: <WelcomeEmail name="Dan" />,
+});
+```
+
+Under the hood this:
+
+1. Translates `subject` and the rendered HTML to French
+2. Strips `locale` and `react` from the payload
+3. Calls `resend.emails.send` with the translated `subject` and `html`
+
+## Without locale
+
+Omit `locale` and the call is forwarded to Resend exactly as-is — no translation, no overhead.
+
+```ts
+await resend.emails.send({
+  from: "hello@acme.com",
+  to: "user@example.com",
+  subject: "Welcome!",
+  html: "<p>Hello!</p>",
+});
+```
+
+<Callout>
+  Passing an empty string (`locale: ""`) also skips translation, the same as
+  omitting the field entirely.
+</Callout>
+
+## With raw HTML
+
+Pass `html` instead of `react` if you already have a rendered HTML string.
+
+```ts
+await resend.emails.send({
+  from: "hello@acme.com",
+  to: "user@example.com",
+  locale: "de",
+  subject: "Welcome!",
+  html: "<h1>Welcome!</h1><p>Your account has been created.</p>",
+});
+```
+
+## All i18n-email options
+
+`withResend` accepts the full `I18nEmailConfig` as its second argument — including `model`, `baseURL`, `maxRetries`, `batchSize`, `cache`, and `onTranslate`.
+
+```ts
+import { Redis } from "@upstash/redis";
+
+const redis = Redis.fromEnv();
+
+const resend = withResend(new Resend(process.env.RESEND_API_KEY!), {
+  openaiApiKey: process.env.OPENAI_API_KEY!,
+  model: "gpt-4o-mini",
+  batchSize: 30,
+  cache: {
+    prefix: "i18n-email:",
+    get: async (key) => {
+      const value = await redis.get(key);
+      if (value === null) return null;
+      return typeof value === "string" ? value : JSON.stringify(value);
+    },
+    set: async (key, value) => {
+      await redis.set(key, value);
+    },
+  },
+  onTranslate: ({ locale, detectedLocale, strings, cacheHit }) => {
+    console.log(`[i18n] ${detectedLocale} → ${locale} | cache: ${cacheHit}`);
+  },
+});
+```
+
+## API reference
+
+### `withResend(resend, config)`
+
+| Parameter | Type              | Description                                      |
+| --------- | ----------------- | ------------------------------------------------ |
+| `resend`  | `Resend`          | A Resend instance                                |
+| `config`  | `I18nEmailConfig` | Same config object accepted by `createI18nEmail` |
+
+Returns `I18nResend`.
+
+### `I18nSendPayload`
+
+The payload type accepted by the wrapped `emails.send`. Extends Resend's `CreateEmailOptions` with one additional field:
+
+| Field    | Type     | Description                                           |
+| -------- | -------- | ----------------------------------------------------- |
+| `locale` | `string` | Target locale. Omit or pass `""` to skip translation. |
+
+### `I18nResend`
+
+The return type of `withResend`. Extends `Resend` with `emails.send` replaced by the locale-aware version. All other members are inherited from the original instance.
+
+## Error handling
+
+The wrapper throws descriptive errors in these cases:
+
+| Situation                                                  | Message                                                            |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| `locale` is set but `subject` is missing                   | `@i18n-email/resend: subject must be a string when locale is set`  |
+| `locale` is set but neither `react` nor `html` is provided | `@i18n-email/resend: react or html is required when locale is set` |
+
+Translation errors from `i18n-email` are propagated as-is.

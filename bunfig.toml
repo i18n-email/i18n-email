@@ -1,0 +1,2 @@
+[test]
+coverageInclude = ["packages/*/src/**"]
