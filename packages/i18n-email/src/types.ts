@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import type { AnyTextAdapter } from "@tanstack/ai";
 
 export interface CacheProvider {
   prefix?: string;
@@ -16,6 +17,8 @@ export interface AiLanguageModel {
   readonly provider: string;
 }
 
+export type TanstackAiTextAdapter = AnyTextAdapter;
+
 interface SharedConfig {
   batchSize?: number;
   cache?: CacheProvider;
@@ -27,16 +30,23 @@ export interface OpenAIConfig extends SharedConfig {
   model?: string;
   baseURL?: string;
   maxRetries?: number;
+  adapter?: never;
 }
 
 export interface AiSdkConfig extends SharedConfig {
   model: AiLanguageModel;
-  openaiApiKey?: never;
-  baseURL?: never;
-  maxRetries?: never;
+  adapter?: never;
 }
 
-export type I18nEmailConfig = OpenAIConfig | AiSdkConfig;
+export interface TanstackAiAdapterConfig extends SharedConfig {
+  adapter: TanstackAiTextAdapter;
+  model?: never;
+}
+
+export type I18nEmailConfig =
+  | OpenAIConfig
+  | AiSdkConfig
+  | TanstackAiAdapterConfig;
 
 export interface TranslateCallbackInfo {
   locale: string;

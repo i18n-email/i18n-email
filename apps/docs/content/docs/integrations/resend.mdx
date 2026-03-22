@@ -1,7 +1,6 @@
 ---
 title: Resend
 description: Use @i18n-email/resend to add locale-aware sending directly on the Resend client.
-icon: Mail
 ---
 
 ## Overview
@@ -102,17 +101,6 @@ const resend = withResend(new Resend(process.env.RESEND_API_KEY!), {
   openaiApiKey: process.env.OPENAI_API_KEY!,
   model: "gpt-4o-mini",
   batchSize: 30,
-  cache: {
-    prefix: "i18n-email:",
-    get: async (key) => {
-      const value = await redis.get(key);
-      if (value === null) return null;
-      return typeof value === "string" ? value : JSON.stringify(value);
-    },
-    set: async (key, value) => {
-      await redis.set(key, value);
-    },
-  },
   onTranslate: ({ locale, detectedLocale, strings, cacheHit }) => {
     console.log(`[i18n] ${detectedLocale} → ${locale} | cache: ${cacheHit}`);
   },

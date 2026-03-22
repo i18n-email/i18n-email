@@ -2,6 +2,8 @@
   "title": "Integrations",
   "icon": "Plug",
   "pages": [
-    "resend"
+    "resend",
+    "vercel-ai-sdk",
+    "tanstack-ai"
   ]
 }

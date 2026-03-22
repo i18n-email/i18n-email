@@ -192,7 +192,7 @@ function CodeBlock({
         </div>
       )}
       <div
-        className="[&_pre]:!rounded-none [&_pre]:!border-0 [&_pre]:!m-0 [&_pre]:p-5 [&_pre]:text-sm [&_pre]:leading-relaxed [&_code]:!text-[13px]"
+        className="[&_pre]:!rounded-none [&_pre]:!border-0 [&_pre]:!m-0 [&_pre]:p-5 [&_pre]:text-sm [&_pre]:leading-relaxed [&_code]:!text-[13px] overflow-x-auto"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>
@@ -255,14 +255,14 @@ function Home() {
           </div>
           <div className="mt-6">
             <code className="text-xs text-fd-muted-foreground font-mono bg-fd-card border border-fd-border px-3 py-1.5 rounded-md select-all">
-              bun add i18n-email
+              npm install i18n-email
             </code>
           </div>
         </div>
       </section>
 
       {/* Before / After */}
-      <section className="mx-auto max-w-[980px] px-6 pb-20 md:pb-28">
+      <section className="mx-auto max-w-[980px] px-6 pb-20 md:pb-28 container">
         <div className="grid md:grid-cols-2 gap-4">
           <CodeBlock html={beforeHtml} label="Before" badge="en" />
           <CodeBlock html={afterHtml} label="After" badge="pl" />
@@ -270,7 +270,7 @@ function Home() {
       </section>
 
       {/* Code Example */}
-      <section className="mx-auto max-w-[980px] px-6 pb-20 md:pb-28">
+      <section className="mx-auto max-w-[980px] px-6 pb-20 md:pb-28 container">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-fd-foreground">
             Three lines to translate
@@ -280,7 +280,11 @@ function Home() {
             come back ready to use.
           </p>
         </div>
-        <CodeBlock html={codeHtml} badge="index.tsx" />
+        <div className="lg:flex lg:justify-center">
+          <div className="lg:w-fit">
+            <CodeBlock html={codeHtml} badge="index.tsx" />
+          </div>
+        </div>
       </section>
 
       {/* Features */}

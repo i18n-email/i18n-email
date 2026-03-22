@@ -38,6 +38,16 @@ ai @ai-sdk/openai
 
 No API key is needed in `createI18nEmail` when using an AI SDK model — the provider handles authentication via its own environment variables.
 
+### Option C: TanStack AI
+
+You can use any TanStack AI adapter instead. Install your provider's adapter package:
+
+```package-install
+@tanstack/ai
+```
+
+Other providers: `@tanstack/ai-anthropic`, etc. No API key is needed in `createI18nEmail` — authentication is handled by the adapter itself.
+
 ## TypeScript
 
 The package ships with full TypeScript types. No additional `@types/*` packages are needed.

@@ -13,6 +13,7 @@ Translate transactional emails into any language using AI models. Works with Rea
 - **`onTranslate` hook** for logging and analytics
 - Supports **any OpenAI-compatible API** via `baseURL`
 - **AI SDK support** — pass any Vercel AI SDK model (`openai()`, `anthropic()`, `google()`, etc.)
+- **TanStack AI support** — pass any TanStack AI adapter (`openai("gpt-4o")`, `anthropic("claude-4-sonnet")`, etc.)
 
 ## Install
 
@@ -28,6 +29,13 @@ To use the Vercel AI SDK instead of the OpenAI client directly:
 
 ```bash
 bun add ai @ai-sdk/openai
+```
+
+To use TanStack AI adapters:
+
+```bash
+bun add @tanstack/ai @tanstack/ai-openai
+# or for other providers: @tanstack/ai-anthropic, etc.
 ```
 
 ## Usage
@@ -87,6 +95,25 @@ const i18nEmail = createI18nEmail({
 });
 ```
 
+### With TanStack AI
+
+Pass a TanStack AI adapter as `adapter` — no `openaiApiKey` needed:
+
+```ts
+import { createI18nEmail } from "i18n-email";
+import { createOpenaiChat } from "@tanstack/ai-openai";
+
+const openai = createOpenaiChat("gpt-4o", process.env.OPENAI_API_KEY!);
+
+const i18nEmail = createI18nEmail({ adapter: openai });
+
+const { subject, html } = await i18nEmail.translate({
+  locale: "ja",
+  subject: "Welcome!",
+  html: "<h1>Welcome!</h1>",
+});
+```
+
 ### With caching (Upstash Redis example)
 
 ```ts
@@ -128,15 +155,28 @@ const i18nEmail = createI18nEmail({
 
 ### `createI18nEmail(config)`
 
-| Option         | Type                                    | Default    | Description                                                      |
-| -------------- | --------------------------------------- | ---------- | ---------------------------------------------------------------- |
-| `openaiApiKey` | `string`                                | —          | OpenAI API key (required when `model` is a string or omitted)    |
-| `model`        | `string \| AiLanguageModel`             | `"gpt-4o"` | OpenAI model name or an AI SDK model instance                    |
-| `baseURL`      | `string`                                | —          | Override the API base URL (Azure, Groq, etc.) — OpenAI path only |
-| `maxRetries`   | `number`                                | `2`        | Retries on transient OpenAI errors — OpenAI path only            |
-| `batchSize`    | `number`                                | `50`       | Max strings per API request                                      |
-| `cache`        | `CacheProvider`                         | —          | Cache adapter to avoid redundant API calls                       |
-| `onTranslate`  | `(info: TranslateCallbackInfo) => void` | —          | Hook called after every translate call                           |
+The config is a discriminated union — pick one backend:
+
+**OpenAI (default)**
+
+| Option         | Type     | Default    | Description                              |
+| -------------- | -------- | ---------- | ---------------------------------------- |
+| `openaiApiKey` | `string` | —          | OpenAI API key (required)                |
+| `model`        | `string` | `"gpt-4o"` | OpenAI model name                        |
+| `baseURL`      | `string` | —          | Override the API base URL (Azure, Groq…) |
+| `maxRetries`   | `number` | `2`        | Retries on transient errors              |
+
+**Vercel AI SDK** — set `model` to an AI SDK `LanguageModel` (e.g. `openai("gpt-4o")`)
+
+**TanStack AI** — set `adapter` to a TanStack `TextAdapter` (e.g. `createOpenaiChat(...)` from `@tanstack/ai-openai`)
+
+**Shared options**
+
+| Option        | Type                                    | Default | Description                            |
+| ------------- | --------------------------------------- | ------- | -------------------------------------- |
+| `batchSize`   | `number`                                | `50`    | Max strings per API request            |
+| `cache`       | `CacheProvider`                         | —       | Cache adapter to skip redundant calls  |
+| `onTranslate` | `(info: TranslateCallbackInfo) => void` | —       | Hook called after every translate call |
 
 Returns `{ translate }`.
 

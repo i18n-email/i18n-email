@@ -9,14 +9,22 @@ import { extractStrings } from "./extract";
 import { injectTranslations } from "./inject";
 import { translateStrings } from "./translate";
 import { translateStringsWithAi } from "./translate-ai";
+import { translateStringsWithTanstack } from "./translate-tanstack";
 import { getCachedResult, setCachedResult } from "./cache";
 import { isRtlLocale, injectRtlDir } from "./rtl";
-import { baseLocale, chunk, createOpenAIClient, isAiSdkConfig } from "./utils";
+import {
+  baseLocale,
+  chunk,
+  createOpenAIClient,
+  isAiSdkConfig,
+  isTanstackAiAdapterConfig,
+} from "./utils";
 
 const DEFAULT_BATCH_SIZE = 50;
 
 export function createI18nEmail(config: I18nEmailConfig) {
   const aiSdk = isAiSdkConfig(config);
+  const tanstackAi = isTanstackAiAdapterConfig(config);
 
   let clientPromise: Promise<import("openai").default> | undefined;
 
@@ -33,9 +41,14 @@ export function createI18nEmail(config: I18nEmailConfig) {
     strings: string[],
     locale: string,
   ): Promise<TranslationResponse> {
+    if (tanstackAi) {
+      return translateStringsWithTanstack(config.adapter, strings, locale);
+    }
+
     if (aiSdk) {
       return translateStringsWithAi(config.model, strings, locale);
     }
+
     const client = await getClient();
     return translateStrings(client, strings, locale, config.model ?? "gpt-4o");
   }

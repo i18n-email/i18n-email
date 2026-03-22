@@ -123,3 +123,16 @@ const i18nEmail = createI18nEmail({
   model: google("gemini-2.5-pro"),
 });
 ```
+
+### With TanStack AI
+
+Pass a TanStack AI adapter as `adapter`. Authentication is handled by the adapter itself — no `openaiApiKey` needed.
+
+```ts
+import { createI18nEmail } from "i18n-email";
+import { createOpenaiChat } from "@tanstack/ai-openai";
+
+const openai = createOpenaiChat("gpt-4o", process.env.OPENAI_API_KEY!);
+
+const i18nEmail = createI18nEmail({ adapter: openai });
+```

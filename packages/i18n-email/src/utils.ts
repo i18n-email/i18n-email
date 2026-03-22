@@ -1,4 +1,10 @@
-import type { AiLanguageModel, AiSdkConfig, I18nEmailConfig } from "./types";
+import type {
+  AiLanguageModel,
+  AiSdkConfig,
+  I18nEmailConfig,
+  TanstackAiTextAdapter,
+  TanstackAiAdapterConfig,
+} from "./types";
 
 export function baseLocale(tag: string): string {
   return tag.split("-")[0]!.toLowerCase();
@@ -23,6 +29,23 @@ export function isAiLanguageModel(value: unknown): value is AiLanguageModel {
 
 export function isAiSdkConfig(config: I18nEmailConfig): config is AiSdkConfig {
   return isAiLanguageModel(config.model);
+}
+
+export function isTanstackAiAdapter(
+  value: unknown,
+): value is TanstackAiTextAdapter {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as Record<string, unknown>)["kind"] === "text" &&
+    typeof (value as Record<string, unknown>)["name"] === "string"
+  );
+}
+
+export function isTanstackAiAdapterConfig(
+  config: I18nEmailConfig,
+): config is TanstackAiAdapterConfig {
+  return isTanstackAiAdapter(config.adapter);
 }
 
 export async function createOpenAIClient(

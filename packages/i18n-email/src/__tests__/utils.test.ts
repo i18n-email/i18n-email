@@ -1,6 +1,13 @@
 import { describe, test, expect } from "bun:test";
-import { baseLocale, chunk, isAiLanguageModel, isAiSdkConfig } from "../utils";
-import type { I18nEmailConfig } from "../types";
+import {
+  baseLocale,
+  chunk,
+  isAiLanguageModel,
+  isAiSdkConfig,
+  isTanstackAiAdapter,
+  isTanstackAiAdapterConfig,
+} from "../utils";
+import type { I18nEmailConfig, TanstackAiTextAdapter } from "../types";
 
 describe("baseLocale", () => {
   test("returns the tag unchanged when there is no region subtag", () => {
@@ -105,5 +112,64 @@ describe("isAiSdkConfig", () => {
       model: "gpt-4o-mini",
     };
     expect(isAiSdkConfig(config)).toBe(false);
+  });
+});
+
+function fakeTanstackAdapter(): TanstackAiTextAdapter {
+  return {
+    kind: "text",
+    name: "openai",
+    model: "gpt-4o",
+  };
+}
+
+describe("isTanstackAdapter", () => {
+  test("returns true for a valid TanStack adapter", () => {
+    expect(isTanstackAiAdapter(fakeTanstackAdapter())).toBe(true);
+  });
+
+  test("returns false for null", () => {
+    expect(isTanstackAiAdapter(null)).toBe(false);
+  });
+
+  test("returns false when kind is not 'text'", () => {
+    expect(isTanstackAiAdapter({ kind: "image", name: "openai" })).toBe(false);
+  });
+
+  test("returns false when name is missing", () => {
+    expect(isTanstackAiAdapter({ kind: "text" })).toBe(false);
+  });
+
+  test("returns false for an AI SDK model", () => {
+    expect(
+      isTanstackAiAdapter({
+        specificationVersion: "v1",
+        modelId: "gpt-4o",
+        provider: "openai",
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("isTanstackAdapterConfig", () => {
+  test("returns true when model is a TanStack adapter", () => {
+    const config: I18nEmailConfig = { adapter: fakeTanstackAdapter() };
+    expect(isTanstackAiAdapterConfig(config)).toBe(true);
+  });
+
+  test("returns false for an OpenAI key config", () => {
+    const config: I18nEmailConfig = { openaiApiKey: "sk-test" };
+    expect(isTanstackAiAdapterConfig(config)).toBe(false);
+  });
+
+  test("returns false for an AI SDK model config", () => {
+    const config: I18nEmailConfig = {
+      model: {
+        specificationVersion: "v1",
+        modelId: "gpt-4o",
+        provider: "openai",
+      },
+    };
+    expect(isTanstackAiAdapterConfig(config)).toBe(false);
   });
 });

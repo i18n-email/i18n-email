@@ -3,6 +3,8 @@ export type {
   AiLanguageModel,
   AiSdkConfig,
   OpenAIConfig,
+  TanstackAiTextAdapter,
+  TanstackAiAdapterConfig,
   I18nEmailConfig,
   CacheProvider,
   TranslateOptions,

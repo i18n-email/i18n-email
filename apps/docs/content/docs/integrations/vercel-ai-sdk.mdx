@@ -1,0 +1,115 @@
+---
+title: Vercel AI SDK
+description: Use Vercel AI SDK models with i18n-email.
+---
+
+## Overview
+
+`i18n-email` supports the [Vercel AI SDK](https://ai-sdk.dev/) as an optional translation backend. Pass any `LanguageModel` as `model` in `createI18nEmail` — no `openaiApiKey` needed.
+
+## Install
+
+Install the `ai` package and your provider:
+
+```package-install
+ai
+```
+
+Other providers: `@ai-sdk/openai`, `@ai-sdk/anthropic`, `@ai-sdk/mistral`, etc.
+
+## Usage
+
+Create a model with your provider function and pass it as `model`:
+
+```ts
+import { createI18nEmail } from "i18n-email";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY!,
+});
+
+const i18nEmail = createI18nEmail({ model: google("gemini-2.5-flash") });
+
+const { subject, html } = await i18nEmail.translate({
+  locale: "pl",
+  subject: "Welcome!",
+  react: <WelcomeEmail name="Dan" />,
+});
+```
+
+## Providers
+
+Any Vercel AI SDK `LanguageModel` is supported. Here are some examples:
+
+### Google
+
+```ts
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY!,
+});
+
+const i18nEmail = createI18nEmail({ model: google("gemini-2.5-flash") });
+```
+
+### OpenAI
+
+```ts
+import { openai } from "@ai-sdk/openai";
+
+const i18nEmail = createI18nEmail({ model: openai("gpt-4o") });
+```
+
+### Anthropic
+
+```ts
+import { anthropic } from "@ai-sdk/anthropic";
+
+const i18nEmail = createI18nEmail({ model: anthropic("claude-4-sonnet") });
+```
+
+## Full example with caching and Resend
+
+```ts
+import { createI18nEmail } from "i18n-email";
+import { Redis } from "@upstash/redis";
+import { Resend } from "resend";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const redis = Redis.fromEnv();
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY!,
+});
+
+const i18nEmail = createI18nEmail({
+  model: google("gemini-2.5-flash"),
+  onTranslate: (info) => {
+    console.log(info);
+  },
+});
+
+const result = await i18nEmail.translate({
+  locale: "pl",
+  subject: "Welcome!",
+  react: (
+    <div>
+      <h1>Welcome to Our Platform!</h1>
+      <p>Your account has been successfully created.</p>
+    </div>
+  ),
+});
+
+await resend.emails.send({
+  from: process.env.RESEND_FROM!,
+  to: process.env.RESEND_TO!,
+  ...result,
+});
+```
+
+## How it works
+
+When `model` is a Vercel AI SDK model object (detected by `specificationVersion`, `modelId`, and `provider` fields), `i18n-email` dynamically imports `generateObject` from `ai` and calls it with a JSON schema for structured output. If `ai` is not installed, a descriptive error is thrown at runtime.

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 — 2026-03-22
+
+### New features
+
+- **TanStack AI support** — pass any TanStack AI text adapter as `model` to `createI18nEmail`; works with any provider supported by `@tanstack/ai` (OpenAI, Anthropic, Google, etc.)
+- **`TanstackAiConfig`** — new config variant that accepts a `model: TanstackAiTextAdapter`; TypeScript enforces the correct shape via the existing discriminated union
+- **Structured output via `outputSchema`** — the TanStack path uses `@tanstack/ai`'s `chat` function with a JSON schema to get typed, structured responses directly, matching the reliability of the AI SDK path
+- **`@tanstack/ai` is an optional peer dependency** — only required when using a TanStack adapter; the library throws a clear install hint if the package is missing
+
+### Other
+
+- `TanstackAiTextAdapter` and `TanstackAiConfig` are now exported from the public API
+- Tests added for the TanStack translation path and client integration
+
 ## 0.3.0 — 2026-03-20
 
 ### New features

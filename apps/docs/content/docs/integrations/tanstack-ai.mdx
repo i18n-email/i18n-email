@@ -1,0 +1,77 @@
+---
+title: TanStack AI
+description: Use TanStack AI adapters with i18n-email.
+---
+
+## Overview
+
+`i18n-email` supports [TanStack AI](https://tanstack.com/ai) as an optional translation backend. Pass an adapter as `adapter` in `createI18nEmail` — no `openaiApiKey` needed.
+
+## Install
+
+Install the core package and your provider's adapter:
+
+```package-install
+@tanstack/ai
+```
+
+## Usage
+
+Create an adapter with your provider function and pass it as `adapter`:
+
+```ts
+import { createI18nEmail } from "i18n-email";
+import { createOpenaiChat } from "@tanstack/ai-openai";
+
+const openai = createOpenaiChat("gpt-4o", process.env.OPENAI_API_KEY!);
+
+const i18nEmail = createI18nEmail({ adapter: openai });
+
+const { subject, html } = await i18nEmail.translate({
+  locale: "pl",
+  subject: "Welcome!",
+  react: <WelcomeEmail name="Dan" />,
+});
+```
+
+## Full example with caching and Resend
+
+```ts
+import { createI18nEmail } from "i18n-email";
+import { Redis } from "@upstash/redis";
+import { Resend } from "resend";
+import { createOpenaiChat } from "@tanstack/ai-openai";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const redis = Redis.fromEnv();
+
+const openai = createOpenaiChat("gpt-4o", process.env.OPENAI_API_KEY!);
+
+const i18nEmail = createI18nEmail({
+  adapter: openai,
+  onTranslate: (info) => {
+    console.log(info);
+  }
+});
+
+const result = await i18nEmail.translate({
+  locale: "pl",
+  subject: "Welcome!",
+  react: (
+    <div>
+      <h1>Welcome to Our Platform!</h1>
+      <p>Your account has been successfully created.</p>
+    </div>
+  ),
+});
+
+await resend.emails.send({
+  from: process.env.RESEND_FROM!,
+  to: "user@example.com",
+  ...result,
+});
+```
+
+## How it works
+
+When `adapter` is provided, `i18n-email` detects it as a TanStack AI text adapter (`kind === "text"`) and dynamically imports `chat` from `@tanstack/ai` to call it with a structured output schema. If `@tanstack/ai` is not installed, a descriptive error is thrown at runtime.

@@ -1,6 +1,6 @@
 {
   "name": "i18n-email",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "description": "Translate transactional emails into any language using AI models.",
   "author": "Dan Zabrotski",
@@ -49,11 +49,15 @@
     "node-html-parser": "^6"
   },
   "peerDependencies": {
+    "@tanstack/ai": ">=0.8",
     "ai": ">=4",
     "openai": ">=4",
     "react": ">=18"
   },
   "peerDependenciesMeta": {
+    "@tanstack/ai": {
+      "optional": true
+    },
     "ai": {
       "optional": true
     },
@@ -63,6 +67,7 @@
   },
   "devDependencies": {
     "@ai-sdk/openai": "^3",
+    "@tanstack/ai": "^0.8.1",
     "@types/bun": "latest",
     "@types/react": "^19",
     "ai": "^6",
