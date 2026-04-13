@@ -1,10 +1,10 @@
 # i18n-email
 
-Translate transactional emails into any language using OpenAI. Works with [React Email](https://react.email) components or raw HTML. Automatically detects the source language and skips translation when the email is already in the target locale.
+Translate transactional emails into any language using OpenAI. Works with [React Email](https://react.email) components, raw HTML, or plain text. Automatically detects the source language and skips translation when the email is already in the target locale.
 
 ## Features
 
-- Accepts a **React Email component** or a **raw HTML string**
+- Accepts a **React Email component**, a **raw HTML string**, or **plain text**
 - Translates the **subject line and body** in a single OpenAI call
 - **Batches large emails** — splits strings into chunks to stay within model limits
 - Skips `<style>`, `<script>`, and `<head>` — only visible text is sent
@@ -47,7 +47,7 @@ await resend.emails.send({
 });
 ```
 
-`translate` returns `{ subject: string, html: string }`, ready to spread into a Resend send call.
+`translate` returns `{ subject, html, text }`. For `react`/`html` inputs, spread the result directly into a Resend send call. For `text` input, `html` is `undefined` — pass `subject` and `text` explicitly.
 
 ## API
 
@@ -73,10 +73,11 @@ Returns `{ translate }`.
 | `subject` | `string`       | Yes      | Email subject line                            |
 | `react`   | `ReactElement` | One of   | React Email component to render and translate |
 | `html`    | `string`       | One of   | Raw HTML string to translate                  |
+| `text`    | `string`       | One of   | Plain text body to translate                  |
 
-Returns `Promise<{ subject: string; html: string }>`.
+Returns `Promise<{ subject: string; html: string | undefined; text: string }>`.
 
-`react` and `html` are mutually exclusive. If `react` is passed, it is rendered to HTML via `@react-email/render` before processing. If the email is already in the target locale, the original content is returned unchanged.
+`react`, `html`, and `text` are mutually exclusive. If `react` is passed, it is rendered to HTML via `@react-email/render` before processing. When `text` is passed, `html` in the result is `undefined` — only the subject and text are translated. If the email is already in the target locale, the original content is returned unchanged.
 
 ### `CacheProvider`
 
@@ -103,13 +104,19 @@ interface TranslateCallbackInfo {
 
 ## How it works
 
+### HTML / React path
+
 1. **Render** — if a React component is passed, render it to HTML
-2. **Cache check** — if a cache is configured, look up by SHA-256(html + subject + locale); return immediately on hit
-3. **Extract** — parse HTML with `node-html-parser`, walk the tree, collect visible text nodes and `alt`/`title` attributes, merge adjacent sibling nodes to preserve sentence context, deduplicate
-4. **Translate** — send `[subject, ...uniqueStrings]` to OpenAI in batches of `batchSize`; the first batch also returns the detected source locale
-5. **Skip if same locale** — if the detected source language matches the target locale (compared by base tag, e.g. `"en-US"` matches `"en"`), return the original content as-is
+2. **Cache check** — look up by SHA-256(html + subject + locale); return immediately on hit
+3. **Extract** — parse HTML with `node-html-parser`, collect visible text nodes and `alt`/`title` attributes, deduplicate
+4. **Translate** — send `[subject, ...uniqueStrings]` to OpenAI in batches of `batchSize`
+5. **Skip if same locale** — if detected locale matches target (e.g. `"en-US"` matches `"en"`), return original as-is
 6. **Inject** — map translated strings back into their original positions in the HTML
-7. **RTL** — if the target locale is RTL, inject `dir="rtl"` on the root `<html>` element
+7. **RTL** — inject `dir="rtl"` on the root `<html>` element for RTL locales
+
+### Plain text path
+
+When `text` is passed instead of `react`/`html`, the HTML pipeline is skipped entirely. Only `[subject, text]` are sent to OpenAI in a single request. The result is `{ subject, html: undefined, text }`.
 
 ## Caching
 

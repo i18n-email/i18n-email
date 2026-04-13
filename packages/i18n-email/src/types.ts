@@ -60,6 +60,7 @@ export interface TranslateOptionsReact {
   subject: string;
   react: ReactElement;
   html?: never;
+  text?: never;
 }
 
 export interface TranslateOptionsHtml {
@@ -67,13 +68,26 @@ export interface TranslateOptionsHtml {
   subject: string;
   html: string;
   react?: never;
+  text?: never;
 }
 
-export type TranslateOptions = TranslateOptionsReact | TranslateOptionsHtml;
+export interface TranslateOptionsText {
+  locale: string;
+  subject: string;
+  text: string;
+  react?: never;
+  html?: never;
+}
+
+export type TranslateOptions =
+  | TranslateOptionsReact
+  | TranslateOptionsHtml
+  | TranslateOptionsText;
 
 export interface TranslateResult {
   subject: string;
-  html: string;
+  html: string | undefined;
+  text: string;
 }
 
 export interface TranslationResponse {

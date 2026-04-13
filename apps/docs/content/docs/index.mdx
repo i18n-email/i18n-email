@@ -4,11 +4,11 @@ description: Translate transactional emails into any language using AI.
 icon: Globe
 ---
 
-**i18n-email** translates transactional emails into any language using AI. Pass a React Email component or a raw HTML string, specify a target locale, and get back a translated `subject` and `html` — ready to send.
+**i18n-email** translates transactional emails into any language using AI. Pass a React Email component, a raw HTML string, or plain text, specify a target locale, and get back a translated `subject`, `html`, and `text` — ready to send.
 
 ## Features
 
-- Works with **React Email components** or **raw HTML strings**
+- Works with **React Email components**, **raw HTML strings**, or **plain text**
 - Translates the **subject line and full body** in a single API call
 - **Detects the source language** automatically — skips translation when already in the target locale
 - Skips `<style>`, `<script>`, and `<head>` — only visible text is extracted and sent
@@ -18,12 +18,18 @@ icon: Globe
 
 ## How it works
 
+### HTML / React
+
 1. **Render** — if a React component is passed, it is rendered to HTML via `@react-email/render`
 2. **Extract** — the HTML is parsed and walked; visible text nodes and translatable attributes (`alt`, `title`) are collected, adjacent sibling text nodes are merged to preserve sentence context, and strings are deduplicated
 3. **Translate** — the subject and all unique strings are sent to OpenAI in a single request as a JSON array; OpenAI returns the translated strings and the detected source locale
 4. **Skip if same locale** — if the detected source language matches the target, the original content is returned unchanged
 5. **Inject** — translated strings are mapped back into their original positions in the HTML tree
 6. **RTL** — if the target locale is right-to-left, `dir="rtl"` is injected on the root `<html>` element
+
+### Plain text
+
+When `text` is passed, the HTML pipeline is skipped entirely. Only `[subject, text]` are sent to OpenAI. The result is `{ subject, html: undefined, text }`.
 
 <Cards>
   <Card

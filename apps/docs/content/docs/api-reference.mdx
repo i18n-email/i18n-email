@@ -63,30 +63,33 @@ const result = await i18nEmail.translate(options);
 
 ### `TranslateOptions`
 
-Exactly one of `react` or `html` must be provided.
+Exactly one of `react`, `html`, or `text` must be provided.
 
-| Option    | Type           | Required | Description                                                                |
-| --------- | -------------- | -------- | -------------------------------------------------------------------------- |
+| Option    | Type           | Required | Description                                                                 |
+| --------- | -------------- | -------- | --------------------------------------------------------------------------- |
 | `locale`  | `string`       | Yes      | BCP 47 locale code of the target language (e.g. `"fr"`, `"ar"`, `"zh-TW"`) |
-| `subject` | `string`       | Yes      | Email subject line to translate                                            |
-| `react`   | `ReactElement` | One of   | React Email component — rendered to HTML before translation                |
-| `html`    | `string`       | One of   | Raw HTML string to translate directly                                      |
+| `subject` | `string`       | Yes      | Email subject line to translate                                             |
+| `react`   | `ReactElement` | One of   | React Email component — rendered to HTML before translation                 |
+| `html`    | `string`       | One of   | Raw HTML string to translate directly                                       |
+| `text`    | `string`       | One of   | Plain text body — skips HTML rendering and extraction entirely              |
 
 ### `TranslateResult`
 
 ```ts
 interface TranslateResult {
   subject: string;
-  html: string;
+  html: string | undefined;
+  text: string;
 }
 ```
 
-| Field     | Description             |
-| --------- | ----------------------- |
-| `subject` | Translated subject line |
-| `html`    | Translated HTML body    |
+| Field     | Description                                                                  |
+| --------- | ---------------------------------------------------------------------------- |
+| `subject` | Translated subject line                                                      |
+| `html`    | Translated HTML body. `undefined` when `text` was passed instead of `react`/`html` |
+| `text`    | Plain text version of the body. Auto-derived from HTML when using `react`/`html`; the translated value when using `text` |
 
-If the source email is already in the target locale, the original `subject` and `html` are returned unchanged.
+If the source email is already in the target locale, the original content is returned unchanged.
 
 ---
 
@@ -123,6 +126,7 @@ import type {
   TranslateOptions,
   TranslateOptionsReact,
   TranslateOptionsHtml,
+  TranslateOptionsText,
   TranslateResult,
   TranslationResponse,
   TranslateCallbackInfo,

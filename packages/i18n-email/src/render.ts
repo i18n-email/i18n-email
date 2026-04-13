@@ -1,4 +1,4 @@
-import { render } from "@react-email/render";
+import { render, toPlainText } from "@react-email/render";
 import type { ReactElement } from "react";
 
 export async function renderReactEmail(
@@ -13,4 +13,8 @@ export async function renderReactEmail(
       }`,
     );
   }
+}
+
+export function renderPlainText(html: string): string {
+  return toPlainText(html);
 }

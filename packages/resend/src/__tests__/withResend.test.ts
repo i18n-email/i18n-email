@@ -1,11 +1,15 @@
 import { describe, test, expect, mock, beforeEach } from "bun:test";
 import { withResend } from "../withResend";
 import type { Resend } from "resend";
+import type { TranslateResult } from "i18n-email";
 
-const mockTranslate = mock(async () => ({
-  subject: "Bienvenue !",
-  html: "<p>Bonjour</p>",
-}));
+const mockTranslate = mock(
+  async (): Promise<TranslateResult> => ({
+    subject: "Bienvenue !",
+    html: "<p>Bonjour</p>",
+    text: "Bonjour",
+  }),
+);
 
 mock.module("i18n-email", () => ({
   createI18nEmail: () => ({ translate: mockTranslate }),
@@ -298,6 +302,133 @@ describe("withResend", () => {
     });
   });
 
+  describe("text-only translation", () => {
+    test("passes text to translate and forwards translated text", async () => {
+      mockTranslate.mockResolvedValueOnce({
+        subject: "Bienvenue !",
+        html: undefined,
+        text: "Votre commande a été expédiée.",
+      });
+
+      const { instance, sendMock } = createMockResend();
+      const resend = withResend(instance, { openaiApiKey: "sk-test" });
+
+      await resend.emails.send({
+        from: "hello@acme.com",
+        to: "dan@example.com",
+        subject: "Your order has shipped.",
+        text: "Your order has shipped.",
+        locale: "fr",
+      });
+
+      expect(mockTranslate).toHaveBeenCalledTimes(1);
+      const translateArg = getCallArg(
+        mockTranslate.mock.calls as unknown[][],
+        0,
+        0,
+      );
+      expect(translateArg).toMatchObject({
+        locale: "fr",
+        subject: "Your order has shipped.",
+        text: "Your order has shipped.",
+      });
+      expect(translateArg).not.toHaveProperty("html");
+      expect(translateArg).not.toHaveProperty("react");
+
+      const sent = getCallArg(sendMock.mock.calls as unknown[][], 0, 0);
+      expect(sent.subject).toBe("Bienvenue !");
+      expect(sent.text).toBe("Votre commande a été expédiée.");
+    });
+
+    test("does not include html in the forwarded payload for text-only", async () => {
+      mockTranslate.mockResolvedValueOnce({
+        subject: "Bienvenue !",
+        html: undefined,
+        text: "Bonjour",
+      });
+
+      const { instance, sendMock } = createMockResend();
+      const resend = withResend(instance, { openaiApiKey: "sk-test" });
+
+      await resend.emails.send({
+        from: "hello@acme.com",
+        to: "dan@example.com",
+        subject: "Hello",
+        text: "Hello",
+        locale: "fr",
+      });
+
+      const sent = getCallArg(sendMock.mock.calls as unknown[][], 0, 0);
+      expect(sent).not.toHaveProperty("html");
+    });
+
+    test("strips original text from the forwarded payload", async () => {
+      mockTranslate.mockResolvedValueOnce({
+        subject: "Bienvenue !",
+        html: undefined,
+        text: "Bonjour",
+      });
+
+      const { instance, sendMock } = createMockResend();
+      const resend = withResend(instance, { openaiApiKey: "sk-test" });
+
+      await resend.emails.send({
+        from: "hello@acme.com",
+        to: "dan@example.com",
+        subject: "Hello",
+        text: "Hello",
+        locale: "fr",
+      });
+
+      const sent = getCallArg(sendMock.mock.calls as unknown[][], 0, 0);
+      expect(sent.text).toBe("Bonjour");
+      expect(sent.text).not.toBe("Hello");
+    });
+
+    test("preserves additional send options with text-only", async () => {
+      mockTranslate.mockResolvedValueOnce({
+        subject: "Bienvenue !",
+        html: undefined,
+        text: "Bonjour",
+      });
+
+      const { instance, sendMock } = createMockResend();
+      const resend = withResend(instance, { openaiApiKey: "sk-test" });
+
+      await resend.emails.send({
+        from: "hello@acme.com",
+        to: "dan@example.com",
+        subject: "Hello",
+        text: "Hello",
+        locale: "fr",
+        replyTo: "support@acme.com",
+        tags: [{ name: "type", value: "plain" }],
+      });
+
+      const sent = getCallArg(sendMock.mock.calls as unknown[][], 0, 0);
+      expect(sent.from).toBe("hello@acme.com");
+      expect(sent.to).toBe("dan@example.com");
+      expect(sent.replyTo).toBe("support@acme.com");
+      expect(sent.tags).toEqual([{ name: "type", value: "plain" }]);
+    });
+
+    test("forwards text payload directly when no locale is set", async () => {
+      const { instance, sendMock } = createMockResend();
+      const resend = withResend(instance, { openaiApiKey: "sk-test" });
+
+      await resend.emails.send({
+        from: "hello@acme.com",
+        to: "dan@example.com",
+        subject: "Hello",
+        text: "Hello world",
+      });
+
+      expect(mockTranslate).not.toHaveBeenCalled();
+      const sent = getCallArg(sendMock.mock.calls as unknown[][], 0, 0);
+      expect(sent.text).toBe("Hello world");
+    });
+  });
+
   describe("error handling", () => {
     test("throws when subject is not a string", async () => {
       const { instance } = createMockResend();
@@ -315,7 +446,7 @@ describe("withResend", () => {
       ).rejects.toThrow("subject must be a string");
     });
 
-    test("throws when neither react nor html is provided", async () => {
+    test("throws when neither react, html, nor text is provided", async () => {
       const { instance } = createMockResend();
       const resend = withResend(instance, {
         openaiApiKey: "sk-test",
@@ -328,7 +459,7 @@ describe("withResend", () => {
           subject: "Hello",
           locale: "fr",
         } as never),
-      ).rejects.toThrow("react or html is required");
+      ).rejects.toThrow("react, html, or text is required");
     });
 
     test("throws when react is not a ReactElement", async () => {
@@ -345,7 +476,7 @@ describe("withResend", () => {
           react: "not a react element" as never,
           locale: "fr",
         } as never),
-      ).rejects.toThrow("react or html is required");
+      ).rejects.toThrow("react, html, or text is required");
     });
   });
 

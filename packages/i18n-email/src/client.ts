@@ -4,7 +4,7 @@ import type {
   TranslateResult,
   TranslationResponse,
 } from "./types";
-import { renderReactEmail } from "./render";
+import { renderReactEmail, renderPlainText } from "./render";
 import { extractStrings } from "./extract";
 import { injectTranslations } from "./inject";
 import { translateStrings } from "./translate";
@@ -58,6 +58,14 @@ export function createI18nEmail(config: I18nEmailConfig) {
   ): Promise<TranslateResult> {
     const { locale, subject } = options;
 
+    if (
+      options.text != undefined &&
+      options.react == undefined &&
+      options.html == undefined
+    ) {
+      return translateTextOnly(options);
+    }
+
     const html = options.react
       ? await renderReactEmail(options.react)
       : options.html;
@@ -83,13 +91,17 @@ export function createI18nEmail(config: I18nEmailConfig) {
 
     const firstBatch = batches[0];
     if (!firstBatch || firstBatch.length === 0) {
-      return { subject, html };
+      return { subject, html, text: renderPlainText(html) };
     }
 
     const firstResponse = await translateBatch(firstBatch, locale);
 
     if (baseLocale(firstResponse.detectedLocale) === baseLocale(locale)) {
-      const result: TranslateResult = { subject, html };
+      const result: TranslateResult = {
+        subject,
+        html,
+        text: renderPlainText(html),
+      };
       if (config.cache) {
         await setCachedResult(config.cache, html, subject, locale, result);
       }
@@ -125,10 +137,68 @@ export function createI18nEmail(config: I18nEmailConfig) {
     const result: TranslateResult = {
       subject: translatedSubject,
       html: translatedHtml,
+      text: renderPlainText(translatedHtml),
     };
 
     if (config.cache) {
       await setCachedResult(config.cache, html, subject, locale, result);
+    }
+
+    config.onTranslate?.({
+      locale,
+      detectedLocale: firstResponse.detectedLocale,
+      strings: allStrings,
+      cacheHit: false,
+    });
+
+    return result;
+  }
+
+  async function translateTextOnly(options: {
+    locale: string;
+    subject: string;
+    text: string;
+  }): Promise<TranslateResult> {
+    const { locale, subject, text } = options;
+
+    if (config.cache) {
+      const cached = await getCachedResult(config.cache, text, subject, locale);
+      if (cached) {
+        config.onTranslate?.({
+          locale,
+          detectedLocale: locale,
+          strings: [],
+          cacheHit: true,
+        });
+        return cached;
+      }
+    }
+
+    const allStrings = [subject, text];
+    const firstResponse = await translateBatch(allStrings, locale);
+
+    if (baseLocale(firstResponse.detectedLocale) === baseLocale(locale)) {
+      const result: TranslateResult = { subject, html: undefined, text };
+      if (config.cache) {
+        await setCachedResult(config.cache, text, subject, locale, result);
+      }
+      config.onTranslate?.({
+        locale,
+        detectedLocale: firstResponse.detectedLocale,
+        strings: allStrings,
+        cacheHit: false,
+      });
+      return result;
+    }
+
+    const result: TranslateResult = {
+      subject: firstResponse.translations[0]!,
+      html: undefined,
+      text: firstResponse.translations[1]!,
+    };
+
+    if (config.cache) {
+      await setCachedResult(config.cache, text, subject, locale, result);
     }
 
     config.onTranslate?.({

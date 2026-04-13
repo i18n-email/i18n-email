@@ -43,8 +43,13 @@ function buildTranslateOptions(
     return { locale, subject, html: payload.html };
   }
 
+  if ("text" in payload && typeof payload.text === "string") {
+    return { locale, subject, text: payload.text };
+  }
+
   throw new Error(
-    "@i18n-email/resend: react or html is " + "required when locale is set",
+    "@i18n-email/resend: react, html, or text is " +
+      "required when locale is set",
   );
 }
 
@@ -67,11 +72,13 @@ export function withResend(
     const options = buildTranslateOptions(locale, rest as SendPayload);
     const translated = await i18n.translate(options);
 
-    const { react: _, html: __, ...sendOptions } = rest;
+    const { react: _, html: __, text: ___, ...sendOptions } = rest;
 
     return originalSend({
       ...sendOptions,
-      ...translated,
+      subject: translated.subject,
+      text: translated.text,
+      ...(translated.html !== undefined && { html: translated.html }),
     } as SendPayload);
   };
 

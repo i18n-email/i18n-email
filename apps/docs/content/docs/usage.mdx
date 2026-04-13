@@ -42,20 +42,35 @@ const { subject, html } = await i18nEmail.translate({
 });
 ```
 
+## With plain text
+
+For emails that have no HTML template — transactional notifications, alerts, etc. — pass a plain text string to `text`. The HTML rendering and extraction pipeline is skipped entirely; only `[subject, text]` are sent to the AI.
+
+```ts
+const { subject, text } = await i18nEmail.translate({
+  locale: "pl",
+  subject: "Your order has shipped!",
+  text: "Hi, your order #1234 is on its way. Estimated delivery: 2–4 business days.",
+});
+```
+
+When `text` is used, `html` in the result is `undefined`.
+
 <Callout type="warn">
-  `react` and `html` are mutually exclusive. Providing both will cause a
-  TypeScript error.
+  `react`, `html`, and `text` are mutually exclusive. Providing more than one
+  will cause a TypeScript error.
 </Callout>
 
 ## Sending with Resend
 
-`translate` returns `{ subject, html }`, which you can spread directly into a Resend send call.
+`translate` returns `{ subject, html, text }`. For `react`/`html` emails you can spread the result directly into a Resend send call. For plain text emails, pass `subject` and `text` explicitly.
 
 ```tsx
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// React / HTML email
 await resend.emails.send({
   from: process.env.RESEND_FROM!,
   to: "user@example.com",
@@ -64,6 +79,20 @@ await resend.emails.send({
     subject: "Welcome!",
     react: <WelcomeEmail name="Dan" />,
   })),
+});
+
+// Plain text email
+const result = await i18nEmail.translate({
+  locale: "pl",
+  subject: "Your order has shipped!",
+  text: "Hi, your order #1234 is on its way.",
+});
+
+await resend.emails.send({
+  from: process.env.RESEND_FROM!,
+  to: "user@example.com",
+  subject: result.subject,
+  text: result.text,
 });
 ```
 

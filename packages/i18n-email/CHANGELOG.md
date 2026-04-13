@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.0 — 2026-04-13
+
+### New features
+
+- **Plain text support** — pass `text` to `translate` instead of `react` or `html` to translate emails that have no HTML template; the HTML rendering and extraction pipeline is skipped entirely, and only `[subject, text]` are sent to the AI in a single request
+- **`TranslateOptionsText`** — new variant in the `TranslateOptions` discriminated union; `react`, `html`, and `text` are mutually exclusive at the type level
+- **`html` is now `string | undefined` in `TranslateResult`** — when `text` is passed, `html` in the result is `undefined` rather than an empty string, making it unambiguous that no HTML was produced
+
+### Other
+
+- `TranslateOptionsText` is now exported from the public API
+- `withResend` from `@i18n-email/resend` now accepts `text` in the send payload — detected before `react`/`html`, stripped from the forwarded payload, and replaced with the translated value; error message updated to `"react, html, or text is required when locale is set"`
+- End-to-end tests added covering the full pipeline through a real HTTP mock server (no module mocking): HTML translation, same-locale short-circuit, RTL injection, batching, cache, and the new text-only path
+- Example files added: `text-only.tsx` (direct `createI18nEmail` usage) and `with-resend-text.tsx` (via `withResend`)
+
 ## 0.4.0 — 2026-03-22
 
 ### New features
